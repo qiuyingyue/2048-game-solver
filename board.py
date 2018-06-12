@@ -59,6 +59,10 @@ class Board2048(object):
             print("invalid board: board.py line 68")
         newgrid = np.copy(self.grid_)
         newgrid[pos[0]][pos[1]] = int(value)
+        '''if (int(value)==2):
+            score = self.score
+        else:
+            score = self.score + 4'''
         return Board2048(newgrid, True, self.score)
 
     def slide(self, move, fake = False):

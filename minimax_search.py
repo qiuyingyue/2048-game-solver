@@ -54,16 +54,16 @@ def minimax_alphabeta_itdeepening(board, timeout):
     print ("Return the result of depth {}: selected move {} with value {}".format(depth_limit-1, best_move, best_val))    
     return best_move
 #generate ordered nodes
-def order_moves(child_boards_moves, max_node, old_table):
+def order_moves(child_boards_moves, max_node, old_table, heuristic_table):
     score_dict={}
     idx = 0
     for (child_board, _) in child_boards_moves:
         if (child_board  in old_table):
             val,_,_, flag = old_table[child_board]#
             if (flag == UPPERBOUD):
-                val = evaluate_score(child_board)####
+                val = evaluate_score(child_board, heuristic_table)####
         else:
-            val = evaluate_score(child_board)#### 
+            val = evaluate_score(child_board, heuristic_table)#### 
 
         score_dict[idx] = val
         idx+=1
@@ -84,9 +84,10 @@ def minimax_alphabeta(board, depth_limit, depth, alpha, beta, trans_table, old_t
 
     cnt_nodes+=1  
     cnt_nodes_it+=1
-    alphaOrig = alpha
+    end_board = None
+    
     """transposition_table"""
-    for b in board.generate_sym():
+    '''for b in board.generate_sym():
         if b in trans_table:
             val, d, end_board,  flag = trans_table[b]
             if (d >= depth):#(d + depth >= depth_limit )#larger to the current search depth 
@@ -102,24 +103,24 @@ def minimax_alphabeta(board, depth_limit, depth, alpha, beta, trans_table, old_t
             if (alpha>=beta):  
                 return (val+board.score, d, end_board)#, i_move)
             board = b
-            break
+            break'''
          
     ######shall take a max? No, hval won't be smaller than val which is old beta or old alpha
     ###??? shall I record it? No need
     ####??? shall I update the alpha
     #trans_table[board] = (hval-board.score, 0, board.end_board,  EXACT)
-    if (board in heuristic_table):
-        hval = heuristic_table[board] + board.score
-    else:
-        hval = evaluate_score(board) 
-        heuristic_table[board]=hval - board.score
-    #hval = evaluate_score(board)
-    alpha = max(alpha, hval) 
+    
+    hval = evaluate_score(board, heuristic_table) 
+    #hval = board.score
+    '''alpha = max(alpha, hval) 
     if (hval>=beta):  
         """pruning for lower bound of the heuristic""" 
-        if (not board.player_turn):
-            print ("Strange!!!",board,hval, alphaOrig)
-        return hval,depth,None
+        #if (not board.player_turn):
+        #    print ("Strange!!!",board,hval, alphaOrig)
+        #end_board = None
+        if (end_board is  None):
+            end_board = board
+        return hval,depth,end_board'''
     #hval = board.score#evaluate_score(board) 
     if ((depth <= 0 ) or board.is_ended) :
         #trans_table[board] = (hval-board.score, depth, board.end_board,  EXACT)
@@ -131,6 +132,8 @@ def minimax_alphabeta(board, depth_limit, depth, alpha, beta, trans_table, old_t
     child_boards_moves=[]
     best_move = None
     end_board = None
+    alphaOrig = alpha
+    betaOrig = beta
     # max node
     if board.player_turn:
         best_val= -math.inf
@@ -139,8 +142,8 @@ def minimax_alphabeta(board, depth_limit, depth, alpha, beta, trans_table, old_t
             if child_board.is_same(board):
                 continue
             child_boards_moves.append((child_board, move))
-        if node_ordering:
-            child_boards_moves = order_moves(child_boards_moves,  True, old_table)
+        #if node_ordering:
+        #    child_boards_moves = order_moves(child_boards_moves,  True, old_table, heuristic_table)
         
         for (child_board, move) in child_boards_moves:
             hvalue, tempd, ie =  minimax_alphabeta(child_board, depth_limit, depth-1, alpha, beta, trans_table, old_table, heuristic_table, node_ordering)
@@ -157,8 +160,8 @@ def minimax_alphabeta(board, depth_limit, depth, alpha, beta, trans_table, old_t
             child_board = board.place((move[0], move[1]), move[2])
             child_boards_moves.append((child_board, move))
         
-        if node_ordering:
-            child_boards_moves = order_moves(child_boards_moves, False, old_table)
+        #if node_ordering:
+        #    child_boards_moves = order_moves(child_boards_moves, False, old_table, heuristic_table)
         
         for (child_board, move) in child_boards_moves:
             hvalue,tempd,ie =  minimax_alphabeta(child_board, depth_limit, depth-1, alpha, beta, trans_table, old_table, heuristic_table, node_ordering)
@@ -172,16 +175,19 @@ def minimax_alphabeta(board, depth_limit, depth, alpha, beta, trans_table, old_t
             if beta <= alpha:
                 break
     """update transposition table"""
-    if (best_val <= alphaOrig):#alphaOrig
+    '''if (best_val <= alphaOrig):#alphaOrig
         trans_table[board]=(best_val-board.score, depth, end_board, UPPERBOUD)
-    elif (best_val >= beta):
+    elif (best_val >= betaOrig):
         trans_table[board]=(best_val-board.score, depth, end_board, LOWERBOUND)
     else:
-        trans_table[board]=(best_val-board.score, depth, end_board,  EXACT)
+        #print ("exist???")
+        trans_table[board]=(best_val-board.score, depth, end_board,  EXACT)'''
 
     if (depth_limit == depth):
+        
         return (best_val,depth,best_move,end_board)
     else:
+        
         return (best_val,depth,end_board)
 
 if __name__ == "__main__":
@@ -192,40 +198,44 @@ if __name__ == "__main__":
         initial_grid_list = generate2by2()
     elif (choice == 3):
         initial_grid_list = generate3by2()
-    csvfile = open("log_size{0}*{1}_24.csv".format(shape[0],shape[1]), "w")
+    else:
+        initial_grid_list = InitialStates(shape).generate(1)
+    csvfile = open("log_size{0}*{1}_24_static.csv".format(shape[0],shape[1]), "w")
     writer = csv.writer(csvfile)
     writer.writerow(['initial state','end state','score','max value','time(s)', 'number of nodes'])
     i = 0
     for initial_grid in initial_grid_list:#[58:59]: #58 True 10 false
         i+=1
         print ("############################################ New Game ##################################################",i)  
-        cnt_nodes = 0
-        cnt_nodes_it = 0
-        is_complete = True
-
         board = Board2048(grid=initial_grid,player_turn=True,score=0)
         print ("initial board:", board)
-        depth_limit = 50000
-        trans_table = {}
+        cnt_nodes = 0
         try:
-            with open('{0}*{1}_data.pkl'.format(shape[0],shape[1]),'rb') as data_file:    
+            with open('{0}*{1}_data_.pkl'.format(shape[0],shape[1]),'rb') as data_file:    
                 heuristic_table = pickle.load(data_file)
                 print (len(heuristic_table))
         except:
             heuristic_table = {}
-        #heuristic_table = {}
-        start = time.time()
+        for depth_limit in range(15,50,5):
+            
+            cnt_nodes_it = 0
+            is_complete = True
+            trans_table = {}
+            
+            start = time.time()
+            best_val,d,best_move,end_board = minimax_alphabeta(board, depth_limit, depth_limit, -math.inf, math.inf, trans_table, {}, heuristic_table, node_ordering=True)
 
-        best_val,d,best_move,end_board = minimax_alphabeta(board, depth_limit, depth_limit, -math.inf, math.inf, trans_table, {}, heuristic_table, node_ordering=True)
-        
-        with open('{0}*{1}_data.pkl'.format(shape[0],shape[1]), 'wb') as outfile:
+            print ("Return the result of depth {}: selected move {} with value {}".format(d, best_move, best_val)) 
+            print ("depth:{}, total nodes:{}, current nodes:{}. value:{}, move:{}, d:{}, size of t table:{},h table{}".format(depth_limit,cnt_nodes,cnt_nodes_it,best_val,best_move,d,len(trans_table), len(heuristic_table)))
+            print ("time:",time.time()-start)
+            print ("end state{}, is_complete:{}".format(end_board, is_complete))
+            
+            
+
+            #end_board, steps = Game2048(initial_grid, "ai","ai",method_idx=2).play()
+            writer.writerow([board, end_board, best_val, end_board.max_val ,  time.time()-start, cnt_nodes_it])
+        with open('{0}*{1}_data_.pkl'.format(shape[0],shape[1]), 'wb') as outfile:
             pickle.dump(heuristic_table, outfile)
-        print ("Return the result of depth {}: selected move {} with value {}".format(d, best_move, best_val)) 
-        print ("depth:{}, total nodes:{}, current nodes:{}. value:{}, move:{}, d:{}, size of t table:{},h table{}".format(depth_limit,cnt_nodes,cnt_nodes_it,best_val,best_move,d,len(trans_table), len(heuristic_table)))
-        print ("end state{}, is_complete:{}".format(end_board, is_complete))
-       
-        #end_board, steps = Game2048(initial_grid, "ai","ai",method_idx=2).play()
-        writer.writerow([board, end_board, best_val, 16,  time.time()-start, cnt_nodes])
 
 
 ##brute force minimax search

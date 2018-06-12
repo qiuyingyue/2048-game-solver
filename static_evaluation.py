@@ -173,10 +173,15 @@ def check_valid_board(board, move):
         newgrid = np.rot90(newgrid, 1)
     
     return Board2048(newgrid, True, board.score+score_added)
-def evaluate_score(board):
+def evaluate_score(board, heuristic_table):
     #score for accumulated score
-    cur_score = board.score#np.nansum(board.size**board.grid_)#
-    cur_score = evaluate_lowerbound(board)#board.score#np.nansum(board.size**board.grid_)#
+    '''if (board in heuristic_table):
+        hval = heuristic_table[board] + board.score
+    else:
+        hval = evaluate_lowerbound(board) 
+        heuristic_table[board]=hval - board.score
+    cur_score = hval#'''
+    cur_score = board.score
 
     #sum_score += 2*np.nansum(np.power(2**board.grid_,2)) 
     
@@ -200,12 +205,16 @@ def evaluate_score(board):
     
     return cur_score #+ cnt_free * monotonicity
 
-initial_grid = np.zeros((3,2))
-initial_grid[0][0]=4
+'''initial_grid = np.zeros((3,3))
+initial_grid[0][0]=0
 initial_grid[0][1]=8
-initial_grid[1][0]=4
-initial_grid[1][1]=64
-initial_grid[2][1]=0
-initial_board = Board2048(grid=initial_grid,player_turn=False,score=288)
-h=evaluate_score(initial_board)
-print (initial_board,h)
+initial_grid[0][2]=4
+initial_grid[1][0]=2
+initial_grid[1][1]=8
+initial_grid[1][2]=4
+initial_grid[2][0]=4
+initial_grid[2][1]=8
+initial_grid[2][2]=2
+initial_board = Board2048(grid=initial_grid,player_turn=False,score=28)
+h=evaluate_score(initial_board,{})
+print (initial_board,h)'''
